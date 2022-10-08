@@ -2,19 +2,6 @@
 const {Student} = require("../../models")
 const {APIFeatures} = require("../../utils")
 
-exports.createStudentName = async function createStudentName(
-  request,
-  response,
-  next
-) {
-  request.body.name = [
-    request.body["first-name"],
-    request.body["second-name"],
-    request.body["last-name"]
-  ].join(" ")
-  next()
-}
-
 exports.getStudents = async function getStudents(request, response) {
   try {
     const apiFeatures = new APIFeatures(Student.find(), request.query)
