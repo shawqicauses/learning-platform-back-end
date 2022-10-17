@@ -1,4 +1,11 @@
 const APIFeatures = require("./api-features")
-const AppError = require("./app-error")
+const ApplicationError = require("./application-error")
+const catchAsyncFunction = require("./catch-async-function")
+const sendMail = require("./mail")
 
-module.exports = {APIFeatures, AppError}
+module.exports = {
+  APIFeatures,
+  ApplicationError,
+  catchAsyncFunction,
+  sendMail
+}

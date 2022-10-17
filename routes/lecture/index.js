@@ -1,11 +1,11 @@
 // DONE REVIEWING
 const express = require("express")
-const {lectureController} = require("../../controllers")
+const {authController, lectureController} = require("../../controllers")
 
 const router = express.Router()
 router
   .route("/")
-  .get(lectureController.getLectures)
+  .get(authController.protectRoute, lectureController.getLectures)
   .post(lectureController.createLecture)
 
 router
@@ -17,6 +17,10 @@ router
   .route("/:id")
   .get(lectureController.getLecture)
   .patch(lectureController.updateLecture)
-  .delete(lectureController.deleteLecture)
+  .delete(
+    authController.protectRoute,
+    authController.restrictTo("admin", "assistant"),
+    lectureController.deleteLecture
+  )
 
 module.exports = router

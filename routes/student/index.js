@@ -6,5 +6,10 @@ const router = express.Router()
 router.post("/signup", authController.signupStudent)
 router.post("/login", authController.loginStudent)
 router.route("/").get(studentController.getStudents)
-router.route("/:id").delete(studentController.deleteStudent)
+router
+  .route("/:id")
+  .get(studentController.getStudent)
+  .patch(studentController.updateStudent)
+  .delete(studentController.deleteStudent)
+
 module.exports = router
