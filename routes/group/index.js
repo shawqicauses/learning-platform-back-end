@@ -1,8 +1,11 @@
 // DONE REVIEWING
 const express = require("express")
-const {groupController} = require("../../controllers")
+const subjectRoutes = require("../subject")
+const {groupController, authController} = require("../../controllers")
 
 const router = express.Router()
+router.use(authController.isAuthenticated)
+
 router
   .route("/")
   .get(groupController.getGroups)
@@ -14,4 +17,5 @@ router
   .patch(groupController.updateGroup)
   .delete(groupController.deleteGroup)
 
+router.use("/:group/subjects", subjectRoutes)
 module.exports = router

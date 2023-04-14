@@ -1,7 +1,7 @@
 const mongoose = require("mongoose")
 
 // DONE REVIEWING
-const groupSchema = mongoose.Schema(
+const groupSchema = new mongoose.Schema(
   {
     "code": {
       type: String,
@@ -12,16 +12,6 @@ const groupSchema = mongoose.Schema(
     "name": {
       type: String,
       required: [true, "A group must have a name"],
-      trim: true
-    },
-    "subject-id": {
-      type: String,
-      required: [true, "A group must have a subject ID"],
-      trim: true
-    },
-    "teacher-id": {
-      type: String,
-      required: [true, "A group must have a teacher ID"],
       trim: true
     },
     "start-date": {
@@ -45,6 +35,18 @@ const groupSchema = mongoose.Schema(
     toObject: {virtuals: true}
   }
 )
+
+groupSchema.virtual("registrations", {
+  ref: "Registration",
+  localField: ["_", "id"].join(""),
+  foreignField: "group"
+})
+
+groupSchema.virtual("subjects", {
+  ref: "Subject-Enrollment",
+  localField: ["_", "id"].join(""),
+  foreignField: "group"
+})
 
 const Group = mongoose.model("Group", groupSchema)
 module.exports = Group

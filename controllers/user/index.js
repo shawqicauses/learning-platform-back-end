@@ -1,5 +1,6 @@
 const {User} = require("../../models")
 const {catchAsyncFunction, ApplicationError} = require("../../utils")
+const {getMany, getOne, updateOne, deleteOne} = require("../factory")
 
 const filterObject = function filterObject(object, ...allowedFields) {
   const filteredObject = {}
@@ -10,6 +11,16 @@ const filterObject = function filterObject(object, ...allowedFields) {
   })
 
   return filteredObject
+}
+
+exports.getUsers = getMany(User)
+exports.getUser = getOne(User)
+exports.updateUser = updateOne(User)
+exports.deleteUser = deleteOne(User)
+
+exports.aliasMe = function aliasMe(request, response, next) {
+  request.params.id = request.user.id
+  next()
 }
 
 exports.updateMe = catchAsyncFunction(async (request, response, next) => {
@@ -25,7 +36,7 @@ exports.updateMe = catchAsyncFunction(async (request, response, next) => {
     return next(new ApplicationError(message, 400)) // 1.
   }
 
-  const fields = ["first-name", "second-name", "last-name", "email"]
+  const fields = ["first-name", "middle-name", "last-name", "email"]
   const body = filterObject(request.body, ...fields) // 2.
   const user = await User.findOneAndUpdate(request.user.id, body, {
     new: true,

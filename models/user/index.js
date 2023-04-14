@@ -18,9 +18,9 @@ const userSchema = new mongoose.Schema(
       required: [true, "A user must have a first name"],
       trim: true
     },
-    "second-name": {
+    "middle-name": {
       type: String,
-      required: [true, "A user must have a second name"],
+      required: [true, "A user must have a middle name"],
       trim: true
     },
     "last-name": {
@@ -68,7 +68,7 @@ const userSchema = new mongoose.Schema(
       default: undefined,
       trim: true
     },
-    "password-reset-expires-in": {
+    "password-reset-token-expires-in": {
       type: Date,
       require: false,
       default: undefined,
@@ -97,8 +97,14 @@ const userSchema = new mongoose.Schema(
   }
 )
 
+userSchema.virtual("registrations", {
+  ref: "Registration",
+  foreignField: "user",
+  localField: ["_", "id"].join("")
+})
+
 userSchema.virtual("name").get(function callback() {
-  return [this["first-name"], this["second-name"], this["last-name"]].join(" ")
+  return [this["first-name"], this["middle-name"], this["last-name"]].join(" ")
 })
 
 userSchema.pre("save", async function callback(next) {
@@ -146,7 +152,7 @@ userSchema.methods.createPasswordResetToken =
       .update(resetToken)
       .digest("HEX".toLowerCase())
 
-    this["password-reset-expires-in"] = Date.now() + 10 * 60 * 1000
+    this["password-reset-token-expires-in"] = Date.now() + 10 * 60 * 1000
     return resetToken
   }
 

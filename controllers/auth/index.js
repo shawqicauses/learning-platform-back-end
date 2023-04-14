@@ -3,7 +3,7 @@
 const util = require("util")
 const crypto = require("crypto")
 const jwt = require("jsonwebtoken")
-const {User, Student} = require("../../models")
+const {User} = require("../../models")
 const {ApplicationError, catchAsyncFunction, sendMail} = require("../../utils")
 
 const signToken = function signToken(id) {
@@ -31,23 +31,26 @@ const createAndSendToken = function createAndSendToken(
   response.status(statusCode).json({status: "success", token, data: {user}})
 }
 
-exports.signupStudent = catchAsyncFunction(async (request, response, next) => {
-  const student = await Student.create({
-    "first-name": request.body["first-name"],
-    "second-name": request.body["second-name"],
-    "last-name": request.body["last-name"],
-    "email": request.body.email,
-    "password": request.body.password,
-    "password-confirm": request.body["password-confirm"],
-    "phone-number": request.body["phone-number"]
+exports.signupUser = function signupUser(role) {
+  return catchAsyncFunction(async (request, response) => {
+    const user = await User.create({
+      role,
+      "first-name": request.body["first-name"],
+      "middle-name": request.body["middle-name"],
+      "last-name": request.body["last-name"],
+      "email": request.body.email,
+      "password": request.body.password,
+      "password-confirm": request.body["password-confirm"],
+      "phone-number": request.body["phone-number"]
+    })
+
+    createAndSendToken(user, 201, response)
   })
+}
 
-  createAndSendToken(student, 201, response)
-})
-
-exports.loginStudent = catchAsyncFunction(async (request, response, next) => {
+exports.loginUser = catchAsyncFunction(async (request, response, next) => {
   // 1. Check if email and password exist
-  // 2. Check if student exists and password is correct
+  // 2. Check if user exists and password is correct
   // 3. Send token to client if everything is okay
   const {email, password} = request.body
   if (!email || !password) {
@@ -56,51 +59,50 @@ exports.loginStudent = catchAsyncFunction(async (request, response, next) => {
   }
 
   const fields = ["+", "password"].join("")
-  const student = await Student.findOne({email}).select(fields)
-  if (
-    !student ||
-    !(await student.isPasswordCorrect(password, student.password))
-  )
+  const user = await User.findOne({email}).select(fields)
+  if (!user || !(await user.isPasswordCorrect(password, user.password)))
     return next(new ApplicationError("In-correct email or password", 401)) // 2.
-  createAndSendToken(student, 200, response) // 3.
+  createAndSendToken(user, 200, response) // 3.
 })
 
-exports.protectRoute = catchAsyncFunction(async (request, response, next) => {
-  // 1. Get token and check if it exists in request headers or not
-  // 2. Verify token and check if it is valid token or not
-  // 3. Check if user still exists after his/her token was issued
-  // 4. Check if user changed password after his/her was issued
-  let token
-  if (
-    request.headers.authorization &&
-    request.headers.authorization.startsWith("Bearer")
-  )
-    [bearer, token] = request.headers.authorization.split(" ")
+exports.isAuthenticated = catchAsyncFunction(
+  async (request, response, next) => {
+    // 1. Get token and check if it exists in request headers or not
+    // 2. Verify token and check if it is valid token or not
+    // 3. Check if user still exists after his/her token was issued
+    // 4. Check if user changed password after his/her was issued
+    let token
+    if (
+      request.headers.authorization &&
+      request.headers.authorization.startsWith("Bearer")
+    )
+      [bearer, token] = request.headers.authorization.split(" ")
 
-  if (!token) {
-    const message = "You are not authenticated. Login to have access"
-    return next(new ApplicationError(message, 401)) // 1.
+    if (!token) {
+      const message = "You are not authenticated. Login to have access"
+      return next(new ApplicationError(message, 401)) // 1.
+    }
+
+    const tokenSecret = process.env.JWT_SECRET
+    const decodedToken = await util.promisify(jwt.verify)(token, tokenSecret) // 2.
+    const currentUser = await User.findById(decodedToken.id)
+
+    if (!currentUser) {
+      const message = "User belongs to this token does no longer exist"
+      return next(new ApplicationError(message, 401)) // 3.
+    }
+
+    if (currentUser.isPasswordChanged(decodedToken.iat)) {
+      const message = "User has changed his password. Login to have access"
+      return next(new ApplicationError(message, 401)) // 4.
+    }
+
+    request.user = currentUser
+    next() // Finally, Grant Access To Protected Route
   }
+)
 
-  const tokenSecret = process.env.JWT_SECRET
-  const decodedToken = await util.promisify(jwt.verify)(token, tokenSecret) // 2.
-  const currentUser = await User.findById(decodedToken.id)
-
-  if (!currentUser) {
-    const message = "User belongs to this token does no longer exist"
-    return next(new ApplicationError(message, 401)) // 3.
-  }
-
-  if (currentUser.isPasswordChanged(decodedToken.iat)) {
-    const message = "User has changed his password. Login to have access"
-    return next(new ApplicationError(message, 401)) // 4.
-  }
-
-  request.user = currentUser
-  next() // Finally, Grant Access To Protected Route
-})
-
-exports.restrictTo = function restrictTo(...roles) {
+exports.isAuthorized = function isAuthorized(...roles) {
   return function middleware(request, response, next) {
     if (!roles.includes(request.user.role)) {
       const message = "You do not have permission to perform this action"
@@ -126,7 +128,7 @@ exports.forgotPassword = catchAsyncFunction(async (request, response, next) => {
 
   const resetLink = [
     `${request.protocol}://${request.get("host")}`,
-    `/api/1/users/reset-password/${resetToken}`
+    `/api/1/users/password/reset/${resetToken}`
   ].join("")
 
   try {
@@ -145,7 +147,7 @@ exports.forgotPassword = catchAsyncFunction(async (request, response, next) => {
     })
   } catch (error) {
     user["password-reset-token"] = undefined
-    user["password-reset-expires-in"] = undefined
+    user["password-reset-token-expires-in"] = undefined
     await user.save({validateBeforeSave: false})
     return next(new ApplicationError("There was an error sending email", 500))
   }
@@ -163,7 +165,7 @@ exports.resetPassword = catchAsyncFunction(async (request, response, next) => {
 
   const user = await User.findOne({
     "password-reset-token": hashedToken,
-    "password-reset-expires-in": {$gt: Date.now()}
+    "password-reset-token-expires-in": {$gt: Date.now()}
   }) // 1.
 
   if (!user)
@@ -171,7 +173,7 @@ exports.resetPassword = catchAsyncFunction(async (request, response, next) => {
   user.password = request.body.password
   user["password-confirm"] = request.body["password-confirm"]
   user["password-reset-token"] = undefined
-  user["password-reset-expires-in"] = undefined
+  user["password-reset-token-expires-in"] = undefined
   await user.save() // 2.
 
   createAndSendToken(user, 200, response) // 4.

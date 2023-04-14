@@ -1,20 +1,22 @@
 // DONE REVIEWING
-const registrationController = require("./registration")
 const groupController = require("./group")
+const registrationController = require("./registration")
 const userController = require("./user")
-const teacherController = require("./teacher")
-const studentController = require("./student")
+const subjectController = require("./subject")
 const lectureController = require("./lecture")
+const navigationController = require("./navigation")
+const languageController = require("./language")
 const authController = require("./auth")
 const errorController = require("./error")
 
 module.exports = {
-  registrationController,
   groupController,
+  registrationController,
   userController,
-  teacherController,
-  studentController,
+  subjectController,
   lectureController,
+  navigationController,
+  languageController,
   authController,
   errorController
 }

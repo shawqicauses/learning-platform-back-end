@@ -1,15 +1,17 @@
 const registrationRoutes = require("./registration")
 const groupRoutes = require("./group")
 const userRoutes = require("./user")
-const teacherRoutes = require("./teacher")
-const studentRoutes = require("./student")
+const subjectRoutes = require("./subject")
 const lectureRoutes = require("./lecture")
+const navigationRoutes = require("./navigation")
+const languageRoutes = require("./language")
 
 module.exports = {
   registrationRoutes,
   groupRoutes,
   userRoutes,
-  teacherRoutes,
-  studentRoutes,
-  lectureRoutes
+  subjectRoutes,
+  lectureRoutes,
+  navigationRoutes,
+  languageRoutes
 }

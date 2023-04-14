@@ -38,21 +38,6 @@ const lectureSchema = new mongoose.Schema(
       type: String,
       required: [true, "A lecture must have a duration"]
     },
-    "subject-id": {
-      type: String,
-      required: [true, "A lecture must have a subject ID"],
-      trim: true
-    },
-    "schedule-id": {
-      type: String,
-      required: [true, "A lecture must have a schedule ID"],
-      trim: true
-    },
-    "teacher-id": {
-      type: String,
-      required: [true, "A lecture must have a teacher ID"],
-      trim: true
-    },
     "request-time": {
       type: Date,
       required: [true, "A lecture must have a request time"],
